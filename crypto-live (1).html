@@ -1,0 +1,361 @@
+<!doctype html>
+<html lang="zh-Hant">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>幣圈即時分析</title>
+<style>
+:root{--bg:#f2f4f6;--card:#fff;--ink:#0f1a24;--mute:#5b6a77;--line:#dce2e8;--up:#0e9b68;--dn:#d4394a;--wait:#b0741a;--acc:#1b4fd6;--soft:#eef2f6;color-scheme:light;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0b1117;--card:#131c25;--ink:#e8eef3;--mute:#8d9eae;--line:#25323f;--up:#2fd596;--dn:#ff6b79;--wait:#e8b04a;--acc:#6f95ff;--soft:#192530;color-scheme:dark}}
+:root[data-theme="dark"]{--bg:#0b1117;--card:#131c25;--ink:#e8eef3;--mute:#8d9eae;--line:#25323f;--up:#2fd596;--dn:#ff6b79;--wait:#e8b04a;--acc:#6f95ff;--soft:#192530;color-scheme:dark}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.6 -apple-system,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif}
+main{max-width:640px;margin:0 auto;padding:20px 16px 48px}
+h1{font-size:24px;font-weight:900;margin:8px 0 4px}
+.sub{color:var(--mute);font-size:14px;margin:0 0 16px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:16px;margin-bottom:14px}
+.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+label{font-size:13px;color:var(--mute);display:block;margin-bottom:4px}
+input,select{width:100%;font:inherit;padding:10px;border-radius:9px;border:1px solid var(--line);background:var(--card);color:var(--ink)}
+.full{grid-column:1/-1}
+#go{width:100%;margin-top:14px;padding:14px;border:0;border-radius:12px;background:var(--acc);color:#fff;font-size:17px;font-weight:700;font-family:inherit}
+#go:disabled{opacity:.5}
+:focus-visible{outline:3px solid var(--acc);outline-offset:2px}
+.act{border-radius:14px;padding:16px;margin-bottom:14px;border:3px solid var(--wait);background:var(--card)}
+.act.long{border-color:var(--up)}.act.short{border-color:var(--dn)}
+.act-t{font-size:20px;font-weight:900}
+.act-s{color:var(--mute);font-size:13px;margin-bottom:8px}
+.act-l{display:flex;justify-content:space-between;align-items:baseline;padding:9px 0;border-top:1px solid var(--line)}
+.act-l span{color:var(--mute);font-size:14px}.act-l b{font-size:22px;font-variant-numeric:tabular-nums}
+.act.long .dir{color:var(--up)}.act.short .dir{color:var(--dn)}
+.act p{margin:10px 0 0;padding:10px 12px;border-radius:10px;background:var(--soft);font-size:15px}
+h2{font-size:15px;margin:0 0 8px}
+.it{display:flex;justify-content:space-between;gap:10px;padding:7px 0;border-top:1px solid var(--line);font-size:14px}
+.it:first-of-type{border-top:0}
+.sc{font-variant-numeric:tabular-nums;font-weight:700;white-space:nowrap}
+.p{color:var(--up)}.n{color:var(--dn)}.z{color:var(--mute)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.cell{background:var(--soft);border-radius:10px;padding:8px 12px}
+.cell small{display:block;color:var(--mute);font-size:12px}
+.cell b{font-size:16px;font-variant-numeric:tabular-nums}
+.warn{font-size:13px;color:var(--mute)}
+.err{color:var(--dn)}
+.btn{padding:11px;border:1px solid var(--line);border-radius:10px;background:var(--soft);color:var(--ink);font-size:14px;font-weight:600;font-family:inherit;width:100%}
+.btn.sm{width:auto;padding:4px 10px;font-size:13px}
+.btn:disabled{opacity:.5}
+.chk{display:flex;gap:8px;align-items:flex-start;margin-top:12px;font-size:13px;color:var(--mute)}
+.chk input{width:auto;margin-top:4px}
+.it select{width:auto;padding:4px}
+</style>
+</head>
+<body>
+<main>
+<h1>幣圈即時分析</h1>
+<p class="sub">選幣種,自動抓幣安即時數據,用指標規則算出做多、做空與槓桿。</p>
+<div class="card">
+  <div class="row">
+    <div><label for="coin">幣種</label>
+      <select id="coin"><option>BTC</option><option>ETH</option><option>SOL</option><option>BNB</option><option>XRP</option><option>DOGE</option><option>ADA</option><option>AVAX</option><option>LINK</option><option>SUI</option><option value="other">其他…</option></select></div>
+    <div><label for="tf">週期</label>
+      <select id="tf"><option value="15m">15 分鐘</option><option value="1h">1 小時</option><option value="4h" selected>4 小時</option><option value="1d">日線</option></select></div>
+    <div class="full" id="otherBox" hidden><label for="other">輸入幣種代號(例如 PEPE)</label><input id="other" autocapitalize="characters"></div>
+    <div><label for="risk">風險偏好</label><select id="risk"><option>保守</option><option selected>一般</option><option>積極</option></select></div>
+    <div><label for="cap">本金 USDT(選填)</label><input id="cap" type="number" inputmode="decimal" placeholder="1000"></div>
+  </div>
+  <button id="go">分析行情</button>
+  <div class="row" style="margin-top:10px"><button class="btn" id="scan">掃描全部幣種</button><button class="btn" id="bt">回測這個幣</button></div>
+  <label class="chk"><input type="checkbox" id="auto"><span>自動更新(每 5 分鐘),出現新的做多或做空訊號時發出聲音提醒。頁面要保持開啟。</span></label>
+</div>
+<div id="out" aria-live="polite"></div>
+<div id="journal"></div>
+<p class="warn">數據來自幣安公開 API 與 alternative.me,每次按鈕才會抓一次。結果是依固定指標規則算出的機械式判讀,不是預測,也沒有回測驗證過勝率。槓桿交易可能損失全部本金,僅供學習參考,不構成投資建議。</p>
+</main>
+<script>
+const $=s=>document.querySelector(s);
+const FAPI='https://fapi.binance.com',SPOT='https://api.binance.com';
+const HTF={'15m':'1h','1h':'4h','4h':'1d','1d':'1w'},MIN={'15m':15,'1h':60,'4h':240,'1d':1440};
+const esc=t=>String(t??'').replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const fp=n=>{n=+n;const a=Math.abs(n);return n.toLocaleString('en-US',{maximumFractionDigits:a>=1000?1:a>=100?2:a>=1?4:a>=.01?5:8})};
+const j=async u=>{const r=await fetch(u);if(!r.ok)throw new Error('HTTP '+r.status);return r.json()};
+const mapK=a=>a.map(k=>({t:k[0],o:+k[1],h:+k[2],l:+k[3],c:+k[4],v:+k[5]}));
+const HOSTS=['https://data-api.binance.vision',SPOT,'https://api-gcp.binance.com','https://api1.binance.com','https://api2.binance.com'];
+async function klines(sym,tf,lim=300){
+  try{return{k:mapK(await j(`${FAPI}/fapi/v1/klines?symbol=${sym}&interval=${tf}&limit=${lim}`)),fut:true}}catch(e){}
+  let err;
+  for(const h of HOSTS){try{return{k:mapK(await j(`${h}/api/v3/klines?symbol=${sym}&interval=${tf}&limit=${lim}`)),fut:false}}catch(e){err=e}}
+  throw err;
+}
+
+/* ---------- 指標 ---------- */
+const avg=a=>a.reduce((x,y)=>x+y,0)/a.length;
+const ema=(a,n)=>{const k=2/(n+1);let e=a[0];return a.map((x,i)=>i?(e=x*k+e*(1-k)):e)};
+function rsi(c,n=14){let g=0,l=0;for(let i=1;i<=n;i++){const d=c[i]-c[i-1];d>0?g+=d:l-=d}g/=n;l/=n;
+  for(let i=n+1;i<c.length;i++){const d=c[i]-c[i-1];g=(g*(n-1)+(d>0?d:0))/n;l=(l*(n-1)+(d<0?-d:0))/n}return l?100-100/(1+g/l):100}
+function atr(k,n=14){let a=0;const t=i=>Math.max(k[i].h-k[i].l,Math.abs(k[i].h-k[i-1].c),Math.abs(k[i].l-k[i-1].c));
+  for(let i=1;i<=n;i++)a+=t(i);a/=n;for(let i=n+1;i<k.length;i++)a=(a*(n-1)+t(i))/n;return a}
+function adx(k,n=14){let st=0,sp=0,sm=0;const dx=[];
+  for(let i=1;i<k.length;i++){const up=k[i].h-k[i-1].h,dn=k[i-1].l-k[i].l;
+    const t=Math.max(k[i].h-k[i].l,Math.abs(k[i].h-k[i-1].c),Math.abs(k[i].l-k[i-1].c));
+    const pd=up>dn&&up>0?up:0,md=dn>up&&dn>0?dn:0;
+    if(i<=n){st+=t;sp+=pd;sm+=md}else{st=st-st/n+t;sp=sp-sp/n+pd;sm=sm-sm/n+md}
+    if(i>=n){const pi=100*sp/st,mi=100*sm/st;dx.push({d:100*Math.abs(pi-mi)/((pi+mi)||1),pi,mi})}}
+  let a=avg(dx.slice(0,n).map(x=>x.d));for(let i=n;i<dx.length;i++)a=(a*(n-1)+dx[i].d)/n;
+  const z=dx[dx.length-1];return{adx:a,pdi:z.pi,mdi:z.mi}}
+function bb(c){const w=i=>{const s=c.slice(i-19,i+1),m=avg(s),sd=Math.sqrt(avg(s.map(x=>(x-m)**2)));return{m,u:m+2*sd,l:m-2*sd,bw:4*sd/m}};
+  const n=c.length-1,b=w(n),ws=[];for(let i=n-99;i<=n;i++)ws.push(w(i).bw);
+  return{...b,pb:(c[n]-b.l)/(b.u-b.l),sq:b.bw<=Math.min(...ws)*1.1}}
+function pivots(H,L){const n=H.length,hs=[],ls=[];
+  for(let i=Math.max(2,n-100);i<n-2;i++){
+    if(H[i]>H[i-1]&&H[i]>H[i-2]&&H[i]>H[i+1]&&H[i]>H[i+2])hs.push(H[i]);
+    if(L[i]<L[i-1]&&L[i]<L[i-2]&&L[i]<L[i+1]&&L[i]<L[i+2])ls.push(L[i])}
+  return{highs:hs,lows:ls}}
+function trendOf(k){const c=k.map(x=>x.c),n=c.length-1,e50=ema(c,50)[n],e200=ema(c,200)[n],p=c[n];
+  if(p>e50&&e50>e200)return{s:2,t:'多頭排列(價格>EMA50>EMA200)'};
+  if(p<e50&&e50<e200)return{s:-2,t:'空頭排列(價格<EMA50<EMA200)'};
+  return p>e50?{s:.5,t:'價格在 EMA50 上方,但均線未排好'}:{s:-.5,t:'價格在 EMA50 下方,但均線未排好'}}
+function patterns(k,down){const[a,b,c]=[k[k.length-3],k[k.length-2],k[k.length-1]];
+  const body=x=>Math.abs(x.c-x.o),rg=x=>x.h-x.l||1e-9,up=x=>x.h-Math.max(x.o,x.c),lo=x=>Math.min(x.o,x.c)-x.l,bull=x=>x.c>x.o,bear=x=>x.c<x.o;
+  const out=[],P=(name,s)=>out.push({name,s});
+  const hammer=body(c)>0&&lo(c)>=2*body(c)&&up(c)<=.3*body(c)+rg(c)*.05,star=body(c)>0&&up(c)>=2*body(c)&&lo(c)<=.3*body(c)+rg(c)*.05;
+  if(hammer)down?P('錘子線(需下一根確認)',1):P('吊頸線(需下一根確認)',-1);
+  if(star)down?P('倒錘子(需下一根確認)',.5):P('射擊之星',-1);
+  if(bear(b)&&bull(c)&&c.o<=b.c&&c.c>=b.o&&body(c)>body(b))P('看漲吞沒',1.5);
+  if(bull(b)&&bear(c)&&c.o>=b.c&&c.c<=b.o&&body(c)>body(b))P('看跌吞沒',-1.5);
+  if(bear(b)&&body(b)>rg(b)*.5&&bull(c)&&c.o<b.c&&c.c>(b.o+b.c)/2&&c.c<b.o)P('曙光初現',1);
+  if(bull(b)&&body(b)>rg(b)*.5&&bear(c)&&c.o>b.c&&c.c<(b.o+b.c)/2&&c.c>b.o)P('烏雲蓋頂',-1);
+  if(bear(a)&&body(a)>rg(a)*.5&&body(b)<body(a)*.35&&bull(c)&&c.c>(a.o+a.c)/2)P('晨星(底部反轉)',1.5);
+  if(bull(a)&&body(a)>rg(a)*.5&&body(b)<body(a)*.35&&bear(c)&&c.c<(a.o+a.c)/2)P('黃昏之星(頂部反轉)',-1.5);
+  if(bull(a)&&bull(b)&&bull(c)&&b.c>a.c&&c.c>b.c&&b.o>a.o&&c.o>b.o)P('前進紅三兵',.5);
+  if(bear(a)&&bear(b)&&bear(c)&&b.c<a.c&&c.c<b.c&&b.o<a.o&&c.o<b.o)P('三隻烏鴉',-1);
+  if(body(c)<=rg(c)*.1)P('十字星(變盤警示,不單獨計分)',0);
+  return out}
+
+/* ---------- 分析 ---------- */
+function analyze(o){
+  const{K,HK,D,tf,risk,cap}=o,closed=K.slice(0,-1),price=K[K.length-1].c;
+  const C=closed.map(k=>k.c),H=closed.map(k=>k.h),L=closed.map(k=>k.l),V=closed.map(k=>k.v),n=C.length-1;
+  const e20=ema(C,20),e50=ema(C,50),e200=ema(C,200),E20=e20[n],E50=e50[n],E200=e200[n];
+  const R=[],add=(t,s)=>R.push({t,s});
+  const ht=trendOf(HK.slice(0,-1));add(`大週期(${HTF[tf]})趨勢:${ht.t}`,ht.s);
+  const ts=(price>E50?1:-1)+(E20>E50?.5:-.5)+(E50>E200?.5:-.5);
+  add(`本週期均線:價格${price>E50?'在':'低於'} EMA50,EMA20${E20>E50?'>':'<'}EMA50,EMA50${E50>E200?'>':'<'}EMA200`,ts);
+  const m12=ema(C,12),m26=ema(C,26),ml=m12.map((x,i)=>x-m26[i]),sg=ema(ml,9),hi=ml.map((x,i)=>x-sg[i]);
+  let ms=(hi[n]>0?.5:-.5)+(hi[n]>hi[n-1]?.5:-.5);
+  if(ml[n]>sg[n]&&ml[n-1]<=sg[n-1])ms+=.5;if(ml[n]<sg[n]&&ml[n-1]>=sg[n-1])ms-=.5;
+  add(`MACD 柱狀圖${hi[n]>0?'為正':'為負'}且${hi[n]>hi[n-1]?'擴大':'收斂'}`,ms);
+  const r=rsi(C);let rs=0,rt='中性區';
+  if(r>70){rs=-1;rt='超買,追高風險'}else if(r>=55){rs=.5;rt='偏強'}else if(r>=45)rt='中性';else if(r>=30){rs=-.5;rt='偏弱'}else{rs=1;rt='超賣,可能反彈'}
+  add(`RSI ${r.toFixed(1)}:${rt}`,rs);
+  const A=adx(closed);if(A.adx>=25)add(`ADX ${A.adx.toFixed(1)}:趨勢明確,${A.pdi>A.mdi?'多方':'空方'}占優`,A.pdi>A.mdi?.5:-.5);
+  const B=bb(C);
+  if(B.pb>1)add('收盤價突破布林上軌,短線過熱',-.5);else if(B.pb<0)add('收盤價跌破布林下軌,短線超賣',.5);
+  if(B.sq)add('布林通道極度收窄(擠壓),接近突破行情,方向待定',0);
+  const vr=V[n]/avg(V.slice(n-20,n)),last=closed[n];
+  if(vr>1.5)add(`放量 ${vr.toFixed(1)} 倍,${last.c>last.o?'上漲':'下跌'}帶量`,last.c>last.o?.5:-.5);
+  let ob=0;const obv=C.map((c,i)=>i?(ob+=c>C[i-1]?V[i]:c<C[i-1]?-V[i]:0):0);
+  const pu=C[n]>C[n-20],ou=obv[n]>obv[n-20];
+  if(pu&&!ou)add('價格上漲但 OBV 下降,量價背離(警示)',-.5);else if(!pu&&ou)add('價格下跌但 OBV 上升,量價背離(警示)',.5);
+  const down=C[n-3]<C[n-8];
+  patterns(closed,down).forEach(p=>add('K 線型態:'+p.name,p.s));
+  const seg=closed.slice(-100),hiP=Math.max(...seg.map(x=>x.h)),loP=Math.min(...seg.map(x=>x.l));
+  const hiI=seg.findIndex(x=>x.h===hiP),loI=seg.findIndex(x=>x.l===loP);
+  let fibTxt='-';
+  if(loI<hiI){const q=(hiP-price)/(hiP-loP);fibTxt=`上升波回檔 ${(q*100).toFixed(0)}%`;if(q>=.382&&q<=.618&&ts>0)add('回檔到費波那契 0.382~0.618 區間且趨勢向上',.5)}
+  else{const q=(price-loP)/(hiP-loP);fibTxt=`下跌波反彈 ${(q*100).toFixed(0)}%`;if(q>=.382&&q<=.618&&ts<0)add('反彈到費波那契 0.382~0.618 區間且趨勢向下',-.5)}
+  let f=null,oiC=null,lsr=null,fg=null;
+  if(D.fund){f=+D.fund.lastFundingRate;
+    if(f>=.0005)add(`資金費率 ${(f*100).toFixed(3)}%,多頭擁擠`,-1);else if(f<=-.0003)add(`資金費率 ${(f*100).toFixed(3)}%,空頭擁擠`,1)}
+  if(D.oih&&D.oih.length>2){const a=+D.oih[0].sumOpenInterestValue,b=+D.oih[D.oih.length-1].sumOpenInterestValue;oiC=(b-a)/a;
+    const bars=Math.round(1440/MIN[tf]),pc=price/C[Math.max(0,n-bars)]-1;
+    if(oiC>.03&&pc>.01)add(`24h 價漲且未平倉量增加 ${(oiC*100).toFixed(1)}%,新多進場`,.5);
+    else if(oiC>.03&&pc<-.01)add(`24h 價跌且未平倉量增加 ${(oiC*100).toFixed(1)}%,新空進場`,-.5)}
+  if(D.ls){lsr=+D.ls[0].longShortRatio;if(lsr>2)add(`帳戶多空比 ${lsr.toFixed(2)},多頭過度擁擠`,-.5);else if(lsr<.8)add(`帳戶多空比 ${lsr.toFixed(2)},空頭過度擁擠`,.5)}
+  if(D.fg){fg=+D.fg.data[0].value;if(fg<25)add(`恐懼貪婪指數 ${fg}(極度恐懼),逆向偏多`,.5);else if(fg>75)add(`恐懼貪婪指數 ${fg}(極度貪婪),逆向偏空`,-.5)}
+  let S=R.reduce((x,y)=>x+y.s,0);
+  const range=A.adx<20&&!B.sq;
+  if(range)add(`ADX ${A.adx.toFixed(1)} 低於 20,判定為盤整,改用區間操作規則,不靠趨勢分數給方向`,0);
+  let dir=range?'觀望':S>=3?'做多':S<=-3?'做空':'觀望',blocked='';
+  const atrv=atr(closed),piv=pivots(H,L);let stop,tp1,tp2,dist;
+  const mode=range?'盤整':'趨勢';
+  if(range){const rh2=Math.max(...H.slice(-50)),rl2=Math.min(...L.slice(-50)),w=rh2-rl2,ps=(price-rl2)/w;
+    if(w>4*atrv){
+      if(ps<=.2&&r<40){dir='做多';stop=rl2-.5*atrv;dist=price-stop;tp1=(rh2+rl2)/2;tp2=rh2-.1*w}
+      else if(ps>=.8&&r>60){dir='做空';stop=rh2+.5*atrv;dist=stop-price;tp1=(rh2+rl2)/2;tp2=rl2+.1*w}}
+    if(dir!=='觀望'&&Math.abs(tp1-price)<1.2*dist){blocked='區間內空間不足,盈虧比不到 1:1.2';dir='觀望'}
+    if(dir==='觀望'&&!blocked)blocked=`盤整區間 ${fp(rl2)} ~ ${fp(rh2)}。等價格靠近下緣(RSI 低於 40)做多,或靠近上緣(RSI 高於 60)做空。`}
+  if(dir!=='觀望'&&!range){
+    const lg=dir==='做多',sw=lg?Math.min(...L.slice(-10)):Math.max(...H.slice(-10));
+    dist=Math.min(Math.max(lg?price-sw+.2*atrv:sw-price+.2*atrv,1.5*atrv),3.5*atrv);
+    stop=lg?price-dist:price+dist;tp1=lg?price+2*dist:price-2*dist;tp2=lg?price+3*dist:price-3*dist;
+    const ob=lg?piv.highs.filter(x=>x>price).sort((a,b)=>a-b)[0]:piv.lows.filter(x=>x<price).sort((a,b)=>b-a)[0];
+    if(ob!=null&&Math.abs(ob-price)<1.5*dist){blocked=`${lg?'上方最近壓力':'下方最近支撐'} ${fp(ob)} 離進場太近,盈虧比不到 1:1.5`;dir='觀望'}}
+  const rh=Math.max(...H.slice(-20)),rl=Math.min(...L.slice(-20));
+  const wait=blocked||(S>0?`偏多但證據不足。可等回踩 EMA20(${fp(E20)})守住,或收盤突破近 20 根高點 ${fp(rh)} 再評估做多。`:`偏空但證據不足。可等反彈到 EMA20(${fp(E20)})遇壓,或收盤跌破近 20 根低點 ${fp(rl)} 再評估做空。`);
+  let c=null;
+  if(dir!=='觀望'){
+    const sp=dist/price*100,limit={保守:3,一般:5,積極:10}[risk];let lev=Math.max(1,Math.min(limit,Math.floor(50/sp)));
+    const crowd=(dir==='做多'&&f>=.0005)||(dir==='做空'&&f<=-.0003);
+    if(crowd)lev=Math.max(1,lev-1);
+    while(lev>1&&(100/lev-.5)<1.5*sp)lev--;
+    const liq=dir==='做多'?price*(1-1/lev+.005):price*(1+1/lev-.005);
+    const rp={保守:.5,一般:1,積極:2}[risk];let pos=null;
+    if(cap>0){const loss=cap*rp/100,nt=loss/(sp/100);pos={loss,nt,margin:nt/lev}}
+    c={sp,lev,rp,pos,crowd,liq}}
+  return{dir,S,conf:Math.min(95,Math.round(40+Math.abs(S)*7)),price,stop,tp1,tp2,R,c,wait,mode,dist,
+    ind:[['RSI',r.toFixed(1)],['ADX',A.adx.toFixed(1)],['EMA20',fp(E20)],['EMA50',fp(E50)],['EMA200',fp(E200)],['MACD 柱',hi[n].toFixed(4)],['布林 %B',B.pb.toFixed(2)],['ATR',fp(atrv)],['量比',vr.toFixed(2)+'x'],['費波那契',fibTxt]],
+    der:[['資金費率',f==null?'無資料':(f*100).toFixed(3)+'%'],['24h OI 變化',oiC==null?'無資料':(oiC*100).toFixed(1)+'%'],['帳戶多空比',lsr==null?'無資料':lsr.toFixed(2)],['恐懼貪婪',fg==null?'無資料':fg]]}}
+
+/* ---------- 畫面 ---------- */
+function show(sym,res,fut){
+  const x=res,long=x.dir==='做多',short=x.dir==='做空',row=(a,b,k)=>`<div class="act-l"><span>${a}</span><b class="${k||''}">${b}</b></div>`;
+  let h=`<div class="act ${long?'long':short?'short':''}"><div class="act-t">操作指令:${esc(x.dir)} ${esc(sym)}</div><div class="act-s">現價 ${fp(x.price)}・分數 ${x.S.toFixed(1)}・信心 ${x.conf}%・${x.mode}模式・${new Date().toLocaleString('zh-TW')}${fut?'':'・僅現貨資料'}</div>`;
+  if(x.c){const c=x.c;
+    h+=row('方向',x.dir,'dir')+row('槓桿',c.lev+'x(逐倉)')+row('進場價',fp(x.price))+row('止損價',fp(x.stop))+row('預估強平價',fp(c.liq)+`(距現價 ${(Math.abs(c.liq-x.price)/x.price*100).toFixed(1)}%)`)+row('目標 1(1:'+(Math.abs(x.tp1-x.price)/x.dist).toFixed(1)+')',fp(x.tp1))+row('目標 2(1:'+(Math.abs(x.tp2-x.price)/x.dist).toFixed(1)+')',fp(x.tp2));
+    if(c.pos)h+=row('建議倉位',fp(c.pos.nt.toFixed(0))+' USDT')+row('所需保證金',fp(c.pos.margin.toFixed(0))+' USDT');
+    h+=`<p>${long?'開多單':'開空單'},槓桿 ${c.lev} 倍,${fp(x.price)} 附近進場。價格${long?'跌破':'漲破'} ${fp(x.stop)} 立刻止損,到目標 1 先平一半。止損距離 ${c.sp.toFixed(2)}%,單筆最大虧損約本金 ${c.rp}%。${c.crowd?'資金費率顯示同方向擁擠,槓桿已再降一級。':''}</p>`}
+  else h+=row('方向','觀望')+row('槓桿','不使用')+`<p>${esc(x.wait)}</p>`;
+  h+=`<div class="row" style="margin-top:12px">${x.c?'<button class="btn" id="jb">記錄這筆單</button>':''}<button class="btn" id="cp">複製給 AI 解讀</button></div></div>`;
+  h+=`<div class="card"><h2>評分明細(做多 +、做空 −,達 ±3 才給方向)</h2>${x.R.map(r=>`<div class="it"><span>${esc(r.t)}</span><span class="sc ${r.s>0?'p':r.s<0?'n':'z'}">${r.s>0?'+':''}${r.s.toFixed(1)}</span></div>`).join('')}</div>`;
+  h+=`<div class="card"><h2>指標讀數</h2><div class="grid">${x.ind.map(i=>`<div class="cell"><small>${i[0]}</small><b>${esc(i[1])}</b></div>`).join('')}</div></div>`;
+  h+=`<div class="card"><h2>衍生品與情緒</h2><div class="grid">${x.der.map(i=>`<div class="cell"><small>${i[0]}</small><b>${esc(i[1])}</b></div>`).join('')}</div></div>`;
+  if(x.mtf)h+=`<div class="card"><h2>多週期方向</h2><div class="grid">${x.mtf.map(m=>`<div class="cell"><small>${m.t}</small><b>${esc(m.dir)}(${m.S==null?'-':m.S.toFixed(1)})</b></div>`).join('')}</div>${x.mtfNote?`<p class="warn" style="margin:8px 0 0">${esc(x.mtfNote)}</p>`:''}</div>`;
+  $('#out').innerHTML=h;bindActs();
+}
+const COINS=['BTC','ETH','SOL','BNB','XRP','DOGE','ADA','AVAX','LINK','SUI'],TFS=['15m','1h','4h','1d'];
+let LAST=null,timer=null;const lastDir={};
+const getBase=()=>($('#coin').value==='other'?$('#other').value.trim().toUpperCase():$('#coin').value).replace(/USDT$/,'');
+const okBase=b=>/^[A-Z0-9]{2,15}$/.test(b);
+const getSet=()=>({tf:$('#tf').value,risk:$('#risk').value,cap:+$('#cap').value||0});
+const errBox=e=>/fetch|network|load failed/i.test(e.message)
+  ?`<div class="card err">瀏覽器連不到幣安(${esc(e.message)})。常見原因:<br>1. 這個檔案是在 claude.ai 或聊天軟體的預覽裡開的,請下載後用 Chrome 或 Safari 直接開啟。<br>2. 你的網路、VPN 或 DNS 擋了幣安,請換網路或關掉 VPN 再試。<br>3. 瀏覽器的廣告或隱私外掛擋掉請求,請暫時關閉。</div>`
+  :`<div class="card err">抓不到資料:${esc(e.message)}。請確認幣種代號正確(幣安 USDT 交易對)。</div>`;
+$('#coin').onchange=()=>{$('#otherBox').hidden=$('#coin').value!=='other'};
+
+async function derivs(sym){
+  const[fund,oih,ls,fg]=await Promise.all([
+    j(`${FAPI}/fapi/v1/premiumIndex?symbol=${sym}`).catch(()=>null),
+    j(`${FAPI}/futures/data/openInterestHist?symbol=${sym}&period=1h&limit=25`).catch(()=>null),
+    j(`${FAPI}/futures/data/globalLongShortAccountRatio?symbol=${sym}&period=1h&limit=1`).catch(()=>null),
+    j('https://api.alternative.me/fng/?limit=1').catch(()=>null)]);
+  return{fund,oih,ls,fg}}
+
+async function runFull(base){
+  const sym=base+'USDT',{tf,risk,cap}=getSet(),need=['15m','1h','4h','1d','1w'];
+  const[rs,D]=await Promise.all([Promise.all(need.map(t=>klines(sym,t))),derivs(sym)]);
+  const ks={};need.forEach((t,i)=>ks[t]=rs[i].k);
+  const res={};
+  TFS.forEach(t=>{if(ks[t].length>=220&&ks[HTF[t]].length>=55)res[t]=analyze({K:ks[t],HK:ks[HTF[t]],D,tf:t,risk,cap})});
+  const x=res[tf];if(!x)throw new Error('歷史資料不足');
+  const oth=TFS.filter(t=>t!==tf&&res[t]).map(t=>res[t]);
+  if(x.dir!=='觀望'){
+    const opp=oth.filter(o=>o.dir!=='觀望'&&o.dir!==x.dir).length,same=oth.filter(o=>o.dir===x.dir).length;
+    if(opp>=2){x.mtfNote=`其他週期有 ${opp} 個方向相反,多週期衝突,改判觀望。`;x.wait=x.mtfNote+'等各週期方向一致再進場。';x.dir='觀望';x.c=null}
+    else if(same>=2){x.conf=Math.min(95,x.conf+8);x.mtfNote=`其他週期有 ${same} 個同向,多週期一致,信心 +8。`}}
+  x.mtf=TFS.map(t=>({t,dir:res[t]?res[t].dir:'-',S:res[t]?res[t].S:null}));
+  return{x,fut:rs[TFS.indexOf(tf)].fut}}
+
+function ping(msg){
+  document.title='🔔 '+msg;
+  try{const a=new(window.AudioContext||window.webkitAudioContext)(),o=a.createOscillator();o.connect(a.destination);o.frequency.value=880;o.start();setTimeout(()=>{o.stop();a.close()},400)}catch(e){}
+  try{if('Notification' in window&&Notification.permission==='granted')new Notification(msg)}catch(e){}}
+
+async function go(auto){
+  const btn=$('#go'),out=$('#out'),base=getBase();
+  if(!okBase(base)){out.innerHTML='<div class="card err">請輸入正確的幣種代號。</div>';return}
+  btn.disabled=true;if(!auto)out.innerHTML='<div class="card">正在抓取即時數據(約 5~10 秒)…</div>';
+  try{
+    const{x,fut}=await runFull(base),tf=$('#tf').value;
+    LAST={base,tf,x};show(base,x,fut);
+    const key=base+tf;if(auto&&x.dir!=='觀望'&&lastDir[key]!==x.dir)ping(`${base} ${tf} 出現${x.dir}訊號`);
+    lastDir[key]=x.dir;
+  }catch(e){out.innerHTML=errBox(e)}finally{btn.disabled=false}}
+$('#go').onclick=()=>go(false);
+$('#auto').onchange=()=>{
+  clearInterval(timer);timer=null;
+  if($('#auto').checked){try{if('Notification' in window)Notification.requestPermission()}catch(e){}go(true);timer=setInterval(()=>go(true),300000)}
+  else document.title='幣圈即時分析'};
+
+/* ---- 掃描全部幣種 ---- */
+async function scan(){
+  const{tf,risk}=getSet(),out=$('#out'),rows=[],q=[...COINS];
+  out.innerHTML='<div class="card">掃描中,約 15~30 秒…</div>';$('#scan').disabled=true;
+  await Promise.all([0,1,2].map(async()=>{while(q.length){const b=q.shift();
+    try{const[m,h]=await Promise.all([klines(b+'USDT',tf),klines(b+'USDT',HTF[tf])]);if(m.k.length<220)throw 0;rows.push({b,x:analyze({K:m.k,HK:h.k,D:{},tf,risk,cap:0})})}catch(e){rows.push({b,err:1})}}}));
+  rows.sort((a,b)=>(b.x?Math.abs(b.x.S):-1)-(a.x?Math.abs(a.x.S):-1));
+  out.innerHTML=`<div class="card"><h2>掃描結果(${tf},依訊號強弱排序)</h2>`+rows.map(r=>r.err?`<div class="it"><span>${r.b}</span><span class="z">抓不到</span></div>`
+    :`<div class="it"><span><b>${r.b}</b>・${r.x.mode}・分數 ${r.x.S.toFixed(1)}</span><span class="sc ${r.x.dir==='做多'?'p':r.x.dir==='做空'?'n':'z'}">${r.x.dir}${r.x.c?' '+r.x.c.lev+'x':''} <button class="btn sm" data-coin="${r.b}">詳情</button></span></div>`).join('')
+    +`<p class="warn" style="margin:8px 0 0">掃描不含衍生品數據與多週期檢查,點詳情會用完整規則重算,結果可能不同。</p></div>`;
+  $('#scan').disabled=false}
+$('#scan').onclick=scan;
+$('#out').addEventListener('click',e=>{const b=e.target.closest('[data-coin]');if(b){$('#coin').value=b.dataset.coin;$('#otherBox').hidden=true;go(false)}});
+
+/* ---- 回測 ---- */
+async function backtest(){
+  const base=getBase(),out=$('#out');
+  if(!okBase(base)){out.innerHTML='<div class="card err">請輸入正確的幣種代號。</div>';return}
+  const{tf,risk}=getSet(),sym=base+'USDT';
+  out.innerHTML='<div class="card">回測中:抓取 1000 根 K 線並逐根重算,約 10~20 秒…</div>';$('#bt').disabled=true;
+  try{
+    const[m,h]=await Promise.all([klines(sym,tf,1000),klines(sym,HTF[tf],1000)]),K=m.k,T=[];
+    if(K.length<400)throw new Error('歷史資料不足');
+    let i=250;
+    while(i<K.length-2){
+      const hk=h.k.filter(x=>x.t<=K[i].t);
+      if(hk.length<55){i++;continue}
+      const r=analyze({K:K.slice(0,i+1).concat([K[i]]),HK:hk.concat([hk[hk.length-1]]),D:{},tf,risk,cap:0});
+      if(r.dir==='觀望'){i++;continue}
+      const lg=r.dir==='做多',e=r.price,d=r.dist,rr1=Math.abs(r.tp1-e)/d,rr2=Math.abs(r.tp2-e)/d,mv=c=>(lg?c-e:e-c)/d;
+      let R=null,half=false,st=r.stop,k2=i+1;
+      for(;k2<K.length&&k2<=i+60;k2++){
+        const k=K[k2];
+        if(lg?k.l<=st:k.h>=st){R=half?.5*rr1:-1;break}
+        if(!half&&(lg?k.h>=r.tp1:k.l<=r.tp1)){half=true;st=e}
+        if(half&&(lg?k.h>=r.tp2:k.l<=r.tp2)){R=.5*rr1+.5*rr2;break}}
+      if(R==null){const c=K[Math.min(k2,K.length-1)].c;R=half?.5*rr1+.5*mv(c):mv(c)}
+      T.push({dir:r.dir,R,mode:r.mode});i=k2+1}
+    const n=T.length;let html;
+    if(!n)html='<p>這段期間規則沒有產生任何訊號。</p>';
+    else{
+      const W=T.filter(t=>t.R>0).length,tot=T.reduce((a,t)=>a+t.R,0),av=tot/n;
+      let cum=0,pk=0,dd=0,ls=0,ml=0;T.forEach(t=>{cum+=t.R;pk=Math.max(pk,cum);dd=Math.max(dd,pk-cum);if(t.R<=0){ls++;ml=Math.max(ml,ls)}else ls=0});
+      const by=['趨勢','盤整'].map(q=>{const a=T.filter(t=>t.mode===q);return a.length?`${q}模式 ${a.length} 筆,平均 ${(a.reduce((x,t)=>x+t.R,0)/a.length).toFixed(2)}R`:`${q}模式 0 筆`}).join('・');
+      const bh=(K[K.length-1].c/K[250].c-1)*100;
+      const v=n<30?'交易筆數少於 30,樣本太少,結果參考價值低。':av>.1?'這段歷史平均每筆是賺的,但這只是過去表現,不保證未來。':'這段歷史平均每筆沒有賺錢,不建議照這套規則實盤。';
+      const cell=(a,b)=>`<div class="cell"><small>${a}</small><b>${b}</b></div>`;
+      html=`<div class="grid">${cell('交易筆數',n)}${cell('勝率',Math.round(W/n*100)+'%')}${cell('平均每筆',av.toFixed(2)+'R')}${cell('累計',tot.toFixed(1)+'R')}${cell('最大回撤',dd.toFixed(1)+'R')}${cell('最長連虧',ml+' 筆')}</div>
+      <p class="warn" style="margin:10px 0 0">${by}<br>同期間單純持有該幣:${bh>0?'+':''}${bh.toFixed(1)}%。1R 等於一次止損的虧損。<br><b>${v}</b></p>`}
+    out.innerHTML=`<div class="card"><h2>${base} ${tf} 回測(${new Date(K[250].t).toLocaleDateString('zh-TW')} 起,共 ${K.length-250} 根 K 線)</h2>${html}<p class="warn" style="margin:10px 0 0">回測用和即時分析相同的規則,但不含衍生品數據與多週期檢查,不含手續費與滑價;若同一根 K 線同時碰到止損和目標,一律算止損。</p></div>`;
+  }catch(e){out.innerHTML=errBox(e)}finally{$('#bt').disabled=false}}
+$('#bt').onclick=backtest;
+
+/* ---- 交易日誌與複製 ---- */
+const JK='cryptoLiveJournal';
+const jl=()=>{try{return JSON.parse(localStorage.getItem(JK)||'[]')}catch(e){return[]}};
+const jsave=a=>{try{localStorage.setItem(JK,JSON.stringify(a))}catch(e){}};
+function renderJ(){
+  const a=jl();if(!a.length){$('#journal').innerHTML='';return}
+  const done=a.filter(e=>e.R!=null),w=done.filter(e=>e.R>0).length,tot=done.reduce((s,e)=>s+e.R,0);
+  $('#journal').innerHTML=`<div class="card"><h2>交易日誌</h2><p class="warn" style="margin:0 0 8px">已結 ${done.length} 筆・勝率 ${done.length?Math.round(w/done.length*100):0}%・累計 ${tot.toFixed(2)}R(資料只存在這個瀏覽器)</p>`
+  +a.slice().reverse().map(e=>`<div class="it" style="flex-wrap:wrap"><span>${new Date(e.t).toLocaleString('zh-TW')}・${esc(e.sym)} ${e.tf} ${e.dir} ${e.lev}x<br>進 ${fp(e.e)} 損 ${fp(e.s)}</span>`
+  +(e.R!=null?`<span class="sc ${e.R>0?'p':e.R<0?'n':'z'}">${e.R>0?'+':''}${e.R.toFixed(2)}R</span>`
+   :`<span><select data-id="${e.id}">${[['止損',-1],['保本',0],['目標1',.5*e.rr1],['目標2',.5*e.rr1+.5*e.rr2]].map(o=>`<option value="${o[1]}">${o[0]} ${o[1]>0?'+':''}${(+o[1]).toFixed(2)}R</option>`).join('')}</select> <button class="btn sm" data-done="${e.id}">結案</button></span>`)
+  +` <button class="btn sm" data-del="${e.id}">刪除</button></div>`).join('')+'</div>'}
+$('#journal').onclick=e=>{const b=e.target.closest('button');if(!b)return;let a=jl();
+  if(b.dataset.del)a=a.filter(x=>String(x.id)!==b.dataset.del);
+  else if(b.dataset.done){const id=b.dataset.done,sel=$('#journal').querySelector(`select[data-id="${id}"]`);a.forEach(x=>{if(String(x.id)===id)x.R=+sel.value})}
+  else return;jsave(a);renderJ()};
+function summary(){
+  const{base,tf,x}=LAST,L=[`${base}/USDT ${tf} 即時分析`,`現價 ${fp(x.price)}・模式 ${x.mode}・結論 ${x.dir}・分數 ${x.S.toFixed(1)}・信心 ${x.conf}%`];
+  if(x.c)L.push(`進場 ${fp(x.price)} 止損 ${fp(x.stop)} 目標1 ${fp(x.tp1)} 目標2 ${fp(x.tp2)} 槓桿 ${x.c.lev}x 預估強平 ${fp(x.c.liq)}`);else L.push('不開單:'+x.wait);
+  L.push('評分明細:');x.R.forEach(r=>L.push(`${r.s>0?'+':''}${r.s.toFixed(1)} ${r.t}`));
+  L.push('指標:'+x.ind.map(i=>i.join(' ')).join(';'));L.push('衍生品與情緒:'+x.der.map(i=>i.join(' ')).join(';'));
+  if(x.mtf)L.push('多週期:'+x.mtf.map(m=>`${m.t} ${m.dir}`).join(','));
+  return L.join('\n')}
+function bindActs(){
+  const jb=$('#jb'),cp=$('#cp');
+  if(jb)jb.onclick=()=>{const{base,tf,x}=LAST,a=jl();a.push({id:Date.now(),t:Date.now(),sym:base,tf,dir:x.dir,e:x.price,s:x.stop,lev:x.c.lev,rr1:Math.abs(x.tp1-x.price)/x.dist,rr2:Math.abs(x.tp2-x.price)/x.dist,R:null});jsave(a);renderJ();jb.textContent='已記錄';jb.disabled=true};
+  if(cp)cp.onclick=async()=>{const t=summary();try{await navigator.clipboard.writeText(t)}catch(e){const ta=document.createElement('textarea');ta.value=t;document.body.append(ta);ta.select();document.execCommand('copy');ta.remove()}cp.textContent='已複製,貼到 AI 解讀頁'};}
+renderJ();
+</script>
+</body>
+</html>
